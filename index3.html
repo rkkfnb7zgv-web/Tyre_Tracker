@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Tyres">
+<meta name="theme-color" content="#0a0a0a">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' rx='40' fill='%230a0a0a'/%3E%3Ccircle cx='90' cy='90' r='55' fill='none' stroke='%23f5a623' stroke-width='14'/%3E%3Ccircle cx='90' cy='90' r='20' fill='%23f5a623'/%3E%3C/svg%3E">
+<title>Tyre Log</title>
+<style>
+  :root {
+    --bg: #0a0a0a;
+    --ink: #f5f1e8;
+    --dim: #6b6660;
+    --accent: #f5a623;
+    --accent-soft: rgba(245, 166, 35, 0.12);
+    --good: #7cb342;
+    --warn: #e53935;
+    --line: rgba(245, 241, 232, 0.08);
+    --card: #131211;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { background: var(--bg); color: var(--ink); }
+  body {
+    font-family: 'Georgia', 'Times New Roman', serif;
+    min-height: 100vh;
+    min-height: 100dvh;
+    padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
+    overflow-x: hidden;
+  }
+  .wrap { max-width: 480px; margin: 0 auto; padding: 24px 20px 100px; }
+
+  header { padding: 16px 0 28px; border-bottom: 1px solid var(--line); margin-bottom: 24px; }
+  .eyebrow {
+    font-family: 'Helvetica Neue', sans-serif;
+    font-size: 10px; letter-spacing: 0.32em; text-transform: uppercase;
+    color: var(--dim); margin-bottom: 6px;
+  }
+  h1 {
+    font-size: 38px; font-weight: 400; letter-spacing: -0.02em;
+    line-height: 1; font-style: italic;
+  }
+  h1 .num { font-style: normal; color: var(--accent); }
+
+  .status {
+    background: var(--card); border: 1px solid var(--line);
+    border-radius: 2px; padding: 20px; margin-bottom: 28px;
+    position: relative; overflow: hidden;
+  }
+  .status::before {
+    content: ''; position: absolute; top: 0; left: 0; width: 3px; height: 100%;
+    background: var(--good); transition: background 0.3s;
+  }
+  .status.overdue::before { background: var(--warn); }
+  .status.due-soon::before { background: var(--accent); }
+  .status-label {
+    font-family: 'Helvetica Neue', sans-serif;
+    font-size: 10px; letter-spacing: 0.28em; text-transform: uppercase;
+    color: var(--dim); margin-bottom: 10px;
+  }
+  .status-main { font-size: 22px; margin-bottom: 6px; }
+  .status-sub { font-family: 'Helvetica Neue', sans-serif; font-size: 13px; color: var(--dim); }
+
+  h2 {
+    font-family: 'Helvetica Neue', sans-serif;
+    font-size: 11px; font-weight: 600; letter-spacing: 0.32em; text-transform: uppercase;
+    color: var(--dim); margin: 32px 0 14px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  h2::after { content: ''; flex: 1; height: 1px; background: var(--line); }
+
+  .settings { background: var(--card); border: 1px solid var(--line); padding: 4px 16px; }
+  .row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 14px 0; border-bottom: 1px solid var(--line);
+    font-family: 'Helvetica Neue', sans-serif; font-size: 14px;
+  }
+  .row:last-child { border-bottom: none; }
+  .row label { color: var(--dim); letter-spacing: 0.04em; }
+  .row .input-group { display: flex; align-items: center; gap: 6px; }
+  .row input {
+    background: transparent; border: none; color: var(--ink);
+    font-family: inherit; font-size: 16px; text-align: right;
+    width: 60px; padding: 4px 0;
+  }
+  .row input:focus { outline: none; color: var(--accent); }
+  .row .unit { color: var(--dim); font-size: 11px; letter-spacing: 0.2em; }
+
+  .btn {
+    width: 100%; padding: 18px; margin-top: 8px;
+    background: var(--accent); color: #0a0a0a;
+    border: none; border-radius: 0;
+    font-family: 'Helvetica Neue', sans-serif;
+    font-size: 12px; font-weight: 700;
+    letter-spacing: 0.32em; text-transform: uppercase;
+    cursor: pointer; transition: transform 0.1s;
+  }
+  .btn:active { transform: scale(0.98); }
+  .btn.ghost {
+    background: transparent; color: var(--ink);
+    border: 1px solid var(--line);
+  }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .history-item {
+    padding: 14px 0; border-bottom: 1px solid var(--line);
+    display: flex; justify-content: space-between; align-items: baseline;
+  }
+  .history-item:last-child { border-bottom: none; }
+  .h-date { font-size: 16px; }
+  .h-meta { font-family: 'Helvetica Neue', sans-serif; font-size: 11px; color: var(--dim); letter-spacing: 0.1em; }
+  .empty {
+    font-family: 'Helvetica Neue', sans-serif; font-size: 13px;
+    color: var(--dim); padding: 20px 0; text-align: center;
+  }
+
+  .modal {
+    position: fixed; inset: 0; background: var(--bg);
+    z-index: 100; overflow-y: auto;
+    display: none; flex-direction: column;
+    padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
+  }
+  .modal.active { display: flex; }
+  .modal-inner { max-width: 480px; margin: 0 auto; padding: 24px 20px; width: 100%; flex: 1; display: flex; flex-direction: column; }
+
+  .modal-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+  .close-btn {
+    background: none; border: none; color: var(--dim);
+    font-size: 24px; cursor: pointer; padding: 4px 8px;
+  }
+  .progress {
+    font-family: 'Helvetica Neue', sans-serif; font-size: 10px;
+    letter-spacing: 0.32em; text-transform: uppercase; color: var(--dim);
+  }
+
+  .car-diagram {
+    position: relative; margin: 10px auto 24px;
+    width: 200px; height: 260px;
+  }
+  .car-body {
+    position: absolute; left: 50%; top: 50%;
+    transform: translate(-50%, -50%);
+    width: 90px; height: 200px;
+    border: 1px solid var(--line);
+    border-radius: 30px 30px 25px 25px;
+    background: var(--card);
+  }
+  .car-body::before, .car-body::after {
+    content: ''; position: absolute; left: 15%; right: 15%; height: 28px;
+    border: 1px solid var(--line); background: var(--bg);
+  }
+  .car-body::before { top: 28px; border-radius: 4px; }
+  .car-body::after { bottom: 28px; border-radius: 4px; }
+  .tyre-dot {
+    position: absolute; width: 38px; height: 56px;
+    background: var(--card); border: 1.5px solid var(--line);
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Helvetica Neue', sans-serif; font-size: 9px;
+    letter-spacing: 0.1em; color: var(--dim);
+    transition: all 0.3s;
+  }
+  .tyre-dot.active {
+    border-color: var(--accent); color: var(--accent);
+    background: var(--accent-soft);
+    box-shadow: 0 0 0 4px var(--accent-soft);
+  }
+  .tyre-dot.done {
+    border-color: var(--good);
+    background: rgba(124, 179, 66, 0.1);
+    color: var(--good);
+  }
+  .tyre-dot.done .pos-label { display: none; }
+  .tyre-dot.done::after { content: '✓'; font-size: 18px; }
+  .tyre-fl { top: 20px; left: 10px; }
+  .tyre-fr { top: 20px; right: 10px; }
+  .tyre-rl { bottom: 20px; left: 10px; }
+  .tyre-rr { bottom: 20px; right: 10px; }
+
+  .prompt-box { text-align: center; margin-bottom: 28px; }
+  .prompt-pos {
+    font-family: 'Helvetica Neue', sans-serif; font-size: 11px;
+    letter-spacing: 0.32em; text-transform: uppercase; color: var(--dim);
+    margin-bottom: 8px;
+  }
+  .prompt-name { font-size: 30px; font-style: italic; margin-bottom: 20px; }
+  .prompt-psi {
+    display: inline-block; padding: 16px 32px;
+    border: 1px solid var(--accent); color: var(--accent);
+  }
+  .psi-num { font-size: 52px; font-weight: 300; letter-spacing: -0.03em; line-height: 1; }
+  .psi-unit {
+    font-family: 'Helvetica Neue', sans-serif; font-size: 11px;
+    letter-spacing: 0.3em; color: var(--dim); margin-top: 6px;
+  }
+
+  .complete {
+    flex: 1; display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 40px 20px; text-align: center;
+  }
+  .check-circle {
+    width: 100px; height: 100px; border-radius: 50%;
+    border: 2px solid var(--good);
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 32px;
+    animation: pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .check-circle::after { content: '✓'; font-size: 48px; color: var(--good); }
+  @keyframes pop {
+    0% { transform: scale(0); }
+    100% { transform: scale(1); }
+  }
+  .complete h3 { font-size: 36px; font-weight: 400; font-style: italic; margin-bottom: 12px; }
+  .complete p {
+    font-family: 'Helvetica Neue', sans-serif; font-size: 14px;
+    color: var(--dim); margin-bottom: 40px; max-width: 280px;
+  }
+
+  .ios-prompt {
+    background: var(--accent-soft); border: 1px solid var(--accent);
+    padding: 16px; margin-bottom: 24px;
+    font-family: 'Helvetica Neue', sans-serif; font-size: 13px;
+    line-height: 1.6; color: var(--ink);
+    display: none;
+  }
+  .ios-prompt.show { display: block; }
+  .ios-prompt strong { color: var(--accent); letter-spacing: 0.05em; }
+  .ios-prompt .dismiss {
+    background: none; border: none; color: var(--dim);
+    font-size: 10px; letter-spacing: 0.24em; text-transform: uppercase;
+    margin-top: 10px; cursor: pointer; padding: 0;
+  }
+
+  .notif-status {
+    font-family: 'Helvetica Neue', sans-serif; font-size: 12px;
+    color: var(--dim); text-align: center; padding: 12px;
+    border: 1px dashed var(--line); margin-top: 10px;
+  }
+  .notif-status.ok { color: var(--good); border-color: rgba(124, 179, 66, 0.3); }
+  .notif-status.bad { color: var(--warn); border-color: rgba(229, 57, 53, 0.3); }
+</style>
+</head>
+<body>
+
+<div class="wrap" id="main">
+  <header>
+    <div class="eyebrow">Tyre Pressure Log</div>
+    <h1>Four <span class="num">/</span> Wheels</h1>
+  </header>
+
+  <div class="ios-prompt" id="iosPrompt">
+    <strong>For reminders to work:</strong><br>
+    Tap the Share button in Safari, choose "Add to Home Screen", then open the app from your Home Screen and enable notifications below.
+    <br><button class="dismiss" onclick="dismissIosPrompt()">Got it</button>
+  </div>
+
+  <div class="status" id="status">
+    <div class="status-label">Status</div>
+    <div class="status-main" id="statusMain">No checks recorded</div>
+    <div class="status-sub" id="statusSub">Start your first check-in below</div>
+  </div>
+
+  <button class="btn" onclick="startCheckIn()">Begin Check-In</button>
+
+  <h2>Targets</h2>
+  <div class="settings">
+    <div class="row">
+      <label>Front Left</label>
+      <div class="input-group">
+        <input type="number" id="psi-fl" min="20" max="60" step="1">
+        <span class="unit">PSI</span>
+      </div>
+    </div>
+    <div class="row">
+      <label>Front Right</label>
+      <div class="input-group">
+        <input type="number" id="psi-fr" min="20" max="60" step="1">
+        <span class="unit">PSI</span>
+      </div>
+    </div>
+    <div class="row">
+      <label>Rear Left</label>
+      <div class="input-group">
+        <input type="number" id="psi-rl" min="20" max="60" step="1">
+        <span class="unit">PSI</span>
+      </div>
+    </div>
+    <div class="row">
+      <label>Rear Right</label>
+      <div class="input-group">
+        <input type="number" id="psi-rr" min="20" max="60" step="1">
+        <span class="unit">PSI</span>
+      </div>
+    </div>
+    <div class="row">
+      <label>Interval</label>
+      <div class="input-group">
+        <input type="number" id="interval" min="7" max="180" step="1">
+        <span class="unit">DAYS</span>
+      </div>
+    </div>
+  </div>
+
+  <h2>History</h2>
+  <div id="history"></div>
+
+  <h2>Notifications</h2>
+  <button class="btn ghost" onclick="enableNotifications()" id="notifBtn">Enable Reminders</button>
+  <div class="notif-status" id="notifStatus" style="display:none"></div>
+</div>
+
+<div class="modal" id="modal">
+  <div class="modal-inner">
+    <div class="modal-head">
+      <div class="progress" id="progress">Step 1 / 4</div>
+      <button class="close-btn" onclick="closeCheckIn()">✕</button>
+    </div>
+
+    <div id="checkInBody">
+      <div class="car-diagram">
+        <div class="car-body"></div>
+        <div class="tyre-dot tyre-fl" id="dot-fl"><span class="pos-label">FL</span></div>
+        <div class="tyre-dot tyre-fr" id="dot-fr"><span class="pos-label">FR</span></div>
+        <div class="tyre-dot tyre-rl" id="dot-rl"><span class="pos-label">RL</span></div>
+        <div class="tyre-dot tyre-rr" id="dot-rr"><span class="pos-label">RR</span></div>
+      </div>
+
+      <div class="prompt-box">
+        <div class="prompt-pos" id="promptPos">Front Left</div>
+        <div class="prompt-name" id="promptName">Fill to target</div>
+        <div class="prompt-psi">
+          <div class="psi-num" id="promptPsi">32</div>
+          <div class="psi-unit">PSI Target</div>
+        </div>
+      </div>
+
+      <button class="btn" onclick="confirmTyre()" id="confirmBtn">Mark Filled</button>
+    </div>
+
+    <div id="completeBody" class="complete" style="display:none">
+      <div class="check-circle"></div>
+      <h3>All four done</h3>
+      <p>Next check-in scheduled. Drive safely.</p>
+      <button class="btn" onclick="closeCheckIn()">Close</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const STORAGE_KEY = 'tyre-log-v1';
+const POSITIONS = [
+  { id: 'fl', label: 'Front Left' },
+  { id: 'fr', label: 'Front Right' },
+  { id: 'rl', label: 'Rear Left' },
+  { id: 'rr', label: 'Rear Right' }
+];
+
+let state = {
+  targets: { fl: 32, fr: 32, rl: 32, rr: 32 },
+  intervalDays: 30,
+  history: [],
+  iosPromptDismissed: false,
+  lastNotifCheck: null
+};
+
+let currentStep = 0;
+let sessionTicks = {};
+
+function load() {
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if (raw) {
+    try {
+      const parsed = JSON.parse(raw);
+      state = { ...state, ...parsed };
+    } catch (e) { console.error('Load failed', e); }
+  }
+}
+function save() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+
+function formatDate(d) {
+  const date = new Date(d);
+  return date.toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+function render() {
+  POSITIONS.forEach(p => {
+    document.getElementById('psi-' + p.id).value = state.targets[p.id];
+  });
+  document.getElementById('interval').value = state.intervalDays;
+
+  const statusEl = document.getElementById('status');
+  const mainEl = document.getElementById('statusMain');
+  const subEl = document.getElementById('statusSub');
+  statusEl.classList.remove('overdue', 'due-soon');
+
+  if (state.history.length === 0) {
+    mainEl.textContent = 'No checks recorded';
+    subEl.textContent = 'Start your first check-in below';
+  } else {
+    const last = new Date(state.history[0].date);
+    const next = new Date(last);
+    next.setDate(next.getDate() + state.intervalDays);
+    const now = new Date();
+    const msPerDay = 1000 * 60 * 60 * 24;
+    const daysLeft = Math.ceil((next - now) / msPerDay);
+
+    if (daysLeft < 0) {
+      statusEl.classList.add('overdue');
+      mainEl.textContent = `Overdue by ${-daysLeft} day${daysLeft === -1 ? '' : 's'}`;
+      subEl.textContent = `Last checked ${formatDate(last)}`;
+    } else if (daysLeft <= 5) {
+      statusEl.classList.add('due-soon');
+      mainEl.textContent = `Due in ${daysLeft} day${daysLeft === 1 ? '' : 's'}`;
+      subEl.textContent = `Last checked ${formatDate(last)}`;
+    } else {
+      mainEl.textContent = `${daysLeft} days until next check`;
+      subEl.textContent = `Last checked ${formatDate(last)}`;
+    }
+  }
+
+  const histEl = document.getElementById('history');
+  if (state.history.length === 0) {
+    histEl.innerHTML = '<div class="empty">No previous check-ins</div>';
+  } else {
+    histEl.innerHTML = state.history.slice(0, 20).map(h => `
+      <div class="history-item">
+        <div class="h-date">${formatDate(h.date)}</div>
+        <div class="h-meta">FL ${h.targets.fl} · FR ${h.targets.fr} · RL ${h.targets.rl} · RR ${h.targets.rr}</div>
+      </div>
+    `).join('');
+  }
+
+  updateNotifStatus();
+  checkIosPrompt();
+}
+
+function checkIosPrompt() {
+  const isIos = /iPhone|iPad|iPod/.test(navigator.userAgent);
+  const isStandalone = window.navigator.standalone === true;
+  const shouldShow = isIos && !isStandalone && !state.iosPromptDismissed;
+  document.getElementById('iosPrompt').classList.toggle('show', shouldShow);
+}
+
+function dismissIosPrompt() {
+  state.iosPromptDismissed = true;
+  save();
+  render();
+}
+
+// Settings change handlers
+POSITIONS.forEach(p => {
+  document.addEventListener('DOMContentLoaded', () => {
+    const el = document.getElementById('psi-' + p.id);
+    if (el) {
+      el.addEventListener('change', () => {
+        const v = parseInt(el.value, 10);
+        if (!isNaN(v) && v >= 20 && v <= 60) {
+          state.targets[p.id] = v;
+          save();
+        } else {
+          el.value = state.targets[p.id];
+        }
+      });
+    }
+  });
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+  const intervalEl = document.getElementById('interval');
+  intervalEl.addEventListener('change', () => {
+    const v = parseInt(intervalEl.value, 10);
+    if (!isNaN(v) && v >= 7 && v <= 180) {
+      state.intervalDays = v;
+      save();
+      render();
+    } else {
+      intervalEl.value = state.intervalDays;
+    }
+  });
+});
+
+// Check-in flow
+function startCheckIn() {
+  currentStep = 0;
+  sessionTicks = {};
+  document.getElementById('checkInBody').style.display = 'block';
+  document.getElementById('completeBody').style.display = 'none';
+  document.getElementById('modal').classList.add('active');
+  updateCheckInUI();
+}
+
+function closeCheckIn() {
+  document.getElementById('modal').classList.remove('active');
+  POSITIONS.forEach(p => {
+    document.getElementById('dot-' + p.id).classList.remove('active', 'done');
+  });
+}
+
+function updateCheckInUI() {
+  const pos = POSITIONS[currentStep];
+  document.getElementById('progress').textContent = `Step ${currentStep + 1} / 4`;
+  document.getElementById('promptPos').textContent = pos.label;
+  document.getElementById('promptName').textContent = 'Fill to target';
+  document.getElementById('promptPsi').textContent = state.targets[pos.id];
+
+  POSITIONS.forEach((p, i) => {
+    const dot = document.getElementById('dot-' + p.id);
+    dot.classList.remove('active', 'done');
+    if (sessionTicks[p.id]) dot.classList.add('done');
+    else if (i === currentStep) dot.classList.add('active');
+  });
+
+  document.getElementById('confirmBtn').textContent =
+    currentStep === 3 ? 'Mark Filled & Finish' : 'Mark Filled';
+}
+
+function confirmTyre() {
+  const pos = POSITIONS[currentStep];
+  sessionTicks[pos.id] = true;
+
+  if (currentStep < 3) {
+    currentStep++;
+    updateCheckInUI();
+  } else {
+    // All four done — record it
+    const entry = {
+      date: new Date().toISOString(),
+      targets: { ...state.targets }
+    };
+    state.history.unshift(entry);
+    save();
+    showComplete();
+    scheduleReminder();
+  }
+}
+
+function showComplete() {
+  POSITIONS.forEach(p => {
+    document.getElementById('dot-' + p.id).classList.add('done');
+    document.getElementById('dot-' + p.id).classList.remove('active');
+  });
+  setTimeout(() => {
+    document.getElementById('checkInBody').style.display = 'none';
+    document.getElementById('completeBody').style.display = 'flex';
+    render();
+  }, 400);
+}
+
+// Notifications
+function updateNotifStatus() {
+  const btn = document.getElementById('notifBtn');
+  const status = document.getElementById('notifStatus');
+
+  if (!('Notification' in window)) {
+    btn.style.display = 'none';
+    status.style.display = 'block';
+    status.className = 'notif-status bad';
+    status.textContent = 'Notifications not supported on this device';
+    return;
+  }
+
+  const perm = Notification.permission;
+  if (perm === 'granted') {
+    btn.style.display = 'none';
+    status.style.display = 'block';
+    status.className = 'notif-status ok';
+    status.textContent = '✓ Reminders enabled';
+  } else if (perm === 'denied') {
+    btn.style.display = 'none';
+    status.style.display = 'block';
+    status.className = 'notif-status bad';
+    status.textContent = 'Notifications blocked. Enable in iOS Settings → Notifications → Tyres.';
+  } else {
+    btn.style.display = 'block';
+    status.style.display = 'none';
+  }
+}
+
+async function enableNotifications() {
+  if (!('Notification' in window)) {
+    alert('Notifications not supported. Make sure you added this to your Home Screen.');
+    return;
+  }
+  try {
+    const result = await Notification.requestPermission();
+    updateNotifStatus();
+    if (result === 'granted') {
+      new Notification('Tyre Log', { body: 'Reminders enabled. You\'ll be notified when a check is due.' });
+    }
+  } catch (e) {
+    console.error('Notification request failed', e);
+  }
+}
+
+function scheduleReminder() {
+  // PWAs on iOS can't background-schedule timers reliably.
+  // Strategy: on each app open, check if overdue and fire a notification immediately.
+  // This is handled by checkDueNotification() called on load and visibility change.
+}
+
+function checkDueNotification() {
+  if (!('Notification' in window) || Notification.permission !== 'granted') return;
+  if (state.history.length === 0) return;
+
+  const last = new Date(state.history[0].date);
+  const next = new Date(last);
+  next.setDate(next.getDate() + state.intervalDays);
+  const now = new Date();
+
+  if (now >= next) {
+    // Throttle: only fire once per day
+    const today = now.toISOString().slice(0, 10);
+    if (state.lastNotifCheck === today) return;
+    state.lastNotifCheck = today;
+    save();
+
+    const overdueDays = Math.floor((now - next) / (1000 * 60 * 60 * 24));
+    const body = overdueDays === 0
+      ? 'Time to check your tyre pressure.'
+      : `Tyre pressure check is ${overdueDays} day${overdueDays === 1 ? '' : 's'} overdue.`;
+    try {
+      new Notification('Tyre Pressure Due', { body, tag: 'tyre-due' });
+    } catch (e) { console.error(e); }
+  }
+}
+
+// Boot
+load();
+document.addEventListener('DOMContentLoaded', () => {
+  render();
+  setTimeout(checkDueNotification, 1500);
+});
+
+// Re-check when app becomes visible (PWA reopened)
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) {
+    render();
+    checkDueNotification();
+  }
+});
+</script>
+</body>
+</html>
